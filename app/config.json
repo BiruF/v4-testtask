@@ -1,0 +1,14 @@
+{
+  "database": {
+    "user": "postgres",
+    "password": "postgres",
+    "dbname": "test",
+    "host": "localhost",
+    "port": 5555,
+    "sslmode": "disable",
+    "timezone": "Europe/Moscow"
+  },
+  "github": {
+    "username": "BiruF"
+  }
+}
