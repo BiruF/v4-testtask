@@ -1,4 +1,4 @@
-version: '3.8'
+version: '3.0'
 
 services:
   db:
@@ -16,11 +16,13 @@ services:
     build: ./app
     env_file:
       - .env
+    depends_on:
+      - db
     ports:
-      - "5002:5002"
+      - "5003:5003"
     networks:
       - my_network
-
+      
 networks:
   my_network:
     driver: bridge

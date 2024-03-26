@@ -2,7 +2,6 @@ package githubdb
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -12,21 +11,6 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
-
-type Config struct {
-	Database struct {
-		User     string `json:"user"`
-		Password string `json:"password"`
-		DBName   string `json:"dbname"`
-		Host     string `json:"host"`
-		Port     int    `json:"port"`
-		SSLMode  string `json:"sslmode"`
-		TimeZone string `json:"timezone"`
-	} `json:"database"`
-	GitHub struct {
-		Username string `json:"username"`
-	} `json:"github"`
-}
 
 type Repository struct {
 	ID          uint       `gorm:"primaryKey"`
@@ -39,15 +23,15 @@ type Repository struct {
 	URL         string     `gorm:"column:url"`
 }
 
-func ConnectToDatabase(dbuser, dbpassword, dbname, dbhost, dbport, dbssl, dbtimezone string) (*gorm.DB, error) {
-	/*config, err := LoadConfig("config.json")
-	if err != nil {
-		return nil, fmt.Errorf("failed to load config: %v", err)
-	}
-	*/
+type Database struct {
+	db *gorm.DB
+}
 
+func NewDatabase() (*Database, error) {
 	dsn := fmt.Sprintf("user=%s password=%s dbname=%s host=%s port=%s sslmode=%s TimeZone=%s",
-		dbuser, dbpassword, dbname, dbhost, dbport, dbssl, dbtimezone)
+		os.Getenv("DATABASE_USER"), os.Getenv("DATABASE_PASSWORD"), os.Getenv("DATABASE_NAME"),
+		os.Getenv("DATABASE_HOST"), os.Getenv("DATABASE_PORT"), os.Getenv("DATABASE_SSL"),
+		os.Getenv("DATABASE_TIMEZONE"))
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to the database: %v", err)
@@ -58,26 +42,10 @@ func ConnectToDatabase(dbuser, dbpassword, dbname, dbhost, dbport, dbssl, dbtime
 		return nil, fmt.Errorf("failed to migrate database: %v", err)
 	}
 
-	return db, nil
+	return &Database{db: db}, nil
 }
 
-func LoadConfig(filename string) (*Config, error) {
-	file, err := os.Open(filename)
-	if err != nil {
-		return nil, fmt.Errorf("failed to open config file: %v", err)
-	}
-	defer file.Close()
-
-	var config Config
-	err = json.NewDecoder(file).Decode(&config)
-	if err != nil {
-		return nil, fmt.Errorf("failed to decode config file: %v", err)
-	}
-
-	return &config, nil
-}
-
-func FetchGitHubData(client *github.Client, db *gorm.DB, username string) error {
+func (d *Database) FetchGitHubData(client *github.Client, username string) error {
 	repos, _, err := client.Repositories.List(context.Background(), username, nil)
 	if err != nil {
 		return err
@@ -100,23 +68,23 @@ func FetchGitHubData(client *github.Client, db *gorm.DB, username string) error 
 			Ts:          time.Now(),
 		}
 
-		db.Create(&repository)
+		d.db.Create(&repository)
 	}
 
 	return nil
 }
 
-func CloseDatabase(db *gorm.DB) error {
-	sqlDB, err := db.DB()
+func (d *Database) Close() error {
+	sqlDB, err := d.db.DB()
 	if err != nil {
 		return err
 	}
 	return sqlDB.Close()
 }
 
-func ReadAllRecords(db *gorm.DB) ([]Repository, error) {
+func (d *Database) ReadAllRecords() ([]Repository, error) {
 	var records []Repository
-	if err := db.Find(&records).Error; err != nil {
+	if err := d.db.Find(&records).Error; err != nil {
 		return nil, err
 	}
 	return records, nil
