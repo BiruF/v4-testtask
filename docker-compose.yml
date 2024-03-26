@@ -9,8 +9,6 @@ services:
       POSTGRES_DB: test
     ports:
       - "5001:5432"
-    networks:
-      - my_network
 
   app:
     build: ./app
@@ -20,9 +18,3 @@ services:
       - db
     ports:
       - "5003:5003"
-    networks:
-      - my_network
-      
-networks:
-  my_network:
-    driver: bridge
