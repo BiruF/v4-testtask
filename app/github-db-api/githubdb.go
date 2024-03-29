@@ -2,7 +2,9 @@ package githubdb
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"strings"
 	"time"
@@ -88,4 +90,68 @@ func (d *Database) ReadAllRecords() ([]Repository, error) {
 		return nil, err
 	}
 	return records, nil
+}
+
+func ReadJSONFile(filePath string) error {
+	file, err := os.Open(filePath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	data, err := ioutil.ReadAll(file)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(string(data))
+
+	return nil
+}
+
+func WriteJSONFile(db *Database, filePath string) error {
+	records, err := db.ReadAllRecords()
+	if err != nil {
+		return fmt.Errorf("failed to read records: %v", err)
+	}
+
+	jsonData, err := json.Marshal(records)
+	if err != nil {
+		return fmt.Errorf("failed to marshal records to JSON: %v", err)
+	}
+
+	file, err := os.Create(filePath)
+	if err != nil {
+		return fmt.Errorf("failed to create output file: %v", err)
+	}
+	defer file.Close()
+
+	_, err = file.Write(jsonData)
+	if err != nil {
+		return fmt.Errorf("failed to write JSON data to file: %v", err)
+	}
+
+	fmt.Println("JSON data has been written to", filePath)
+	return nil
+}
+
+func WriteFilteredJSONFile(records []Repository, filePath string) error {
+	jsonData, err := json.Marshal(records)
+	if err != nil {
+		return fmt.Errorf("failed to marshal records to JSON: %v", err)
+	}
+
+	file, err := os.Create(filePath)
+	if err != nil {
+		return fmt.Errorf("failed to create output file: %v", err)
+	}
+	defer file.Close()
+
+	_, err = file.Write(jsonData)
+	if err != nil {
+		return fmt.Errorf("failed to write JSON data to file: %v", err)
+	}
+
+	fmt.Println("Filtered JSON data has been written to", filePath)
+	return nil
 }

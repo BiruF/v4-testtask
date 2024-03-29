@@ -18,3 +18,4 @@ services:
       - db
     ports:
       - "5003:5003"
+    
